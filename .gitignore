@@ -235,6 +235,7 @@ hotpotqa/*.pyo
 hotpotqa/.DS_Store
 hotpotqa/.env
 hotpotqa/temp/
+hotpotqa/run_metrics/
 hotpotqa/*.egg-info/
 hotpotqa/dist/
 hotpotqa/build/
