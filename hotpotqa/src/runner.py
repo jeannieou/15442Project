@@ -61,7 +61,10 @@ class HotPotQARun:
             start = time.perf_counter()
             obs, r, done, info = env.step(action, step_type="simulate")
             end = time.perf_counter()
-            return env.sim_obs, r, done, info, end - start
+            # `env` is a wrapped env (HistoryWrapper/LoggingWrapper/...).
+            # The simulated observation should come from the returned `obs`,
+            # not from a wrapper-specific attribute on the outermost env.
+            return obs, r, done, info, end - start
 
         attempts = 0
         while attempts < 10:

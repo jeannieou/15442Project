@@ -1,6 +1,7 @@
-openrouter_api_key = "your-openrouter-api-key"
+openrouter_api_key = "your_open_ai_key"
 openrouter_model_name = "openai/gpt-4"
 openrouter_guess_model_name = "openai/gpt-5-nano"
+openai_api_key = "your_open_ai_key"
 
 prompts_folder = "./prompts/"
 prompt_file = "prompts_naive.json"
