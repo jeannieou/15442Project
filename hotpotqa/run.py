@@ -91,6 +91,7 @@ def main():
     parser.add_argument("--norun", action="store_false", help="Skip running the experiment")
     parser.add_argument("--modelname", default=constants.openrouter_model_name, help="Agent model name")
     parser.add_argument("--guessmodelname", default=constants.openrouter_guess_model_name, help="Guess model name")
+    parser.add_argument("--idx", type=int, default=None, help="Run a single question index")
     parser.add_argument("--cleanuptrajs", action="store_true", help="Clean up incomplete trajectories")
     args = parser.parse_args()
 
@@ -104,7 +105,10 @@ def main():
         Utils.cleanup_trajs(runner.base_traj_path)
 
     if args.norun:
-        runner.run(webthink_simulate=True, skip_done=True)
+        if args.idx is not None:
+            runner.run(webthink_simulate=True, skip_done=False, idxs_override=[args.idx])
+        else:
+            runner.run(webthink_simulate=True, skip_done=True)
         Utils.cleanup_trajs(runner.base_traj_path)
 
     if args.getmetric:
