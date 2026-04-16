@@ -228,11 +228,12 @@ class HotPotQARun:
         info.update({'n_calls': n_calls_badcalls[0], 'n_badcalls': n_calls_badcalls[1], 'traj': running_prompt})
         return info
 
-    def run(self, webthink_simulate=False, skip_done=False):
+    def run(self, webthink_simulate=False, skip_done=False, idxs_override=None):
         from google.genai.errors import ClientError, ServerError
 
         idxs = list(range(constants.num))
         random.Random(constants.random_seed).shuffle(idxs)
+        idxs_to_run = idxs_override if idxs_override is not None else idxs[:constants.n_samples_to_run]
 
         webthink_examples = Utils.read_json(
             join(constants.prompts_folder, constants.prompt_file)
@@ -245,7 +246,7 @@ class HotPotQARun:
         infos = []
         old_time = time.time()
 
-        for i in idxs[:constants.n_samples_to_run]:
+        for i in idxs_to_run:
             self.current_index = i
             current_dir_path = join(self.base_traj_path, str(self.current_index))
 

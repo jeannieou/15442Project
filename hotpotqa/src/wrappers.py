@@ -78,6 +78,12 @@ class HistoryWrapper(gym.Wrapper):
         self.sim_trajectory_dict = self.get_empty_traj_dict()
         return output
 
+    def write(self):
+        # Persist logs when an outer wrapper is asked to flush trajectories.
+        if hasattr(self.env, "write"):
+            return self.env.write()
+        return None
+
 
 def normalize_answer(s):
     def remove_articles(text):
