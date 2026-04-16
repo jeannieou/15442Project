@@ -33,6 +33,7 @@ class HotPotQARun:
         self.to_print_output = to_print_output
 
     def recalc_base_traj_path(self):
+        # 根据 agent 模型名、top-k 猜测数、guess 模型名，生成轨迹保存目录路径
         btp = (
             "./run_metrics/agent_"
             + self.model_name.split('/')[-1]
@@ -43,13 +44,15 @@ class HotPotQARun:
         return btp
 
     def _get_env(self):
-        env = environment.WikiEnv()
+        # 构建多层包装的环境：WikiEnv（维基百科搜索）→ HotPotQA 数据集 → 日志 → 历史记录
+        env = environment.WikiEnv(guess_model_name=self.guess_model_name)
         env = wrappers.HotPotQAWrapper(env, split="dev")
         env = wrappers.LoggingWrapper(env)
         env = wrappers.HistoryWrapper(env, obs_format="history")
         return env
 
     def log(self, *args, save_log=True):
+        # 打印日志到控制台，并可选地追加写入当前样本的 log.txt
         text = " ".join(str(a) for a in args).strip() + "\n"
         if self.to_print_output:
             print(text, end="")
@@ -57,7 +60,17 @@ class HotPotQARun:
             log_path = join(self.base_traj_path, str(self.current_index), "log.txt")
             Utils.append_file(text, log_path)
 
-    def step(self, env, action):
+    def step(self, env, action, simulate=False):
+        # 执行一步动作：simulate=True 时走模拟路径（用 LLM 伪造观测），否则真实调用维基百科 API（最多重试 10 次超时）
+        if simulate:
+            start = time.perf_counter()
+            obs, r, done, info = env.step(action, step_type="simulate")
+            end = time.perf_counter()
+            # `env` is a wrapped env (HistoryWrapper/LoggingWrapper/...).
+            # The simulated observation should come from the returned `obs`,
+            # not from a wrapper-specific attribute on the outermost env.
+            return obs, r, done, info, end - start
+
         attempts = 0
         while attempts < 10:
             try:
@@ -68,7 +81,19 @@ class HotPotQARun:
             except requests.exceptions.Timeout:
                 attempts += 1
 
+    def extract_action(self, action_string):
+        # 从 LLM 输出中提取第一个合法动作（Search/Lookup/Finish），返回单个字符串
+        search_pattern = r'[Ss]earch\[[^\]]+\]'
+        lookup_pattern = r'[Ll]ookup\[[^\]]+\]'
+        finish_pattern = r'[Ff]inish\[[^\]]+\]'
+        for pattern in [search_pattern, lookup_pattern, finish_pattern]:
+            output = re.search(pattern, action_string)
+            if output:
+                return output.group()
+        return None
+
     def extract_actions(self, action_string):
+        # 从 LLM 输出中提取所有合法动作（Search/Lookup/Finish），返回列表（用于 top-k 猜测）
         search_pattern = r'[Ss]earch\[[^\]]+\]'
         lookup_pattern = r'[Ll]ookup\[[^\]]+\]'
         finish_pattern = r'[Ff]inish\[[^\]]+\]'
@@ -78,13 +103,31 @@ class HotPotQARun:
         return outputs
 
     def action_lowercase(self, action):
+        # 将动作名称（'['之前的部分）转为小写，保留参数部分不变
         index = action.find("[")
         if index == -1:
             return action[0].lower() + action[1:]
         else:
             return action[:index].lower() + action[index:]
 
+    def separate_thought_and_action(self, i, thought_action):
+        # 从 LLM 输出中解析出第 i 步的 Thought 和单个 Action 字符串
+        action_condition = f"Action {i}: " in thought_action
+        thought_condition = f"Thought {i}: " in thought_action
+        thought, action = None, None
+        if thought_condition and action_condition:
+            thought, action = thought_action.strip().split(f"Action {i}: ")
+            thought = thought.strip().split(f"Thought {i}: ")[1]
+        elif thought_condition:
+            thought = thought_action.strip().split(f"Thought {i}: ")[1]
+            action = None
+        elif action_condition:
+            action = thought_action.strip().split(f"Action {i}: ")[1]
+            thought = "Let me do the action " + action
+        return thought, action
+
     def separate_thought_and_actions(self, i, thought_action):
+        # 从 LLM 输出中解析出第 i 步的 Thought 和所有 Actions 列表（支持 top-k 猜测）
         try:
             split = thought_action.split(f"Thought {i}: ")
             thought = split[0].strip() if len(split) == 1 else split[1].strip()
@@ -94,6 +137,7 @@ class HotPotQARun:
         return thought, actions
 
     def generate_thought_actions(self, i, running_prompt, n_calls_badcalls, num_actions=1, max_retries=1):
+        # 调用 LLM 生成第 i 步的 Thought + Action(s)；若未解析到动作则重试，超限后抛出异常
         n_calls_badcalls[0] += 1
 
         thought_action = self.llm.call(
@@ -121,6 +165,10 @@ class HotPotQARun:
         return thought, actions
 
     def webthink(self, idx=None, prompt=None, to_print=True, n=8, simulate=False):
+        # 单个问题的完整 ReAct 循环：
+        #   - 每步让 agent LLM 生成 Thought+Action，执行真实动作并获取观测
+        #   - simulate=True 时，同时让 guess LLM 生成 top-k 候选动作，并用模拟环境预取观测（投机执行）
+        #   - 循环至 Finish 动作或达到最大步数，返回 EM/F1 等评估信息
         done = False
         running_prompt = prompt
         question = self.env.reset(idx=idx)
