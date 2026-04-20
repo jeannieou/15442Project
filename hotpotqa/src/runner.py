@@ -16,7 +16,14 @@ from .speculator import HotPotQASpeculator
 
 
 class HotPotQARun:
-    def __init__(self, model_name="gemini", guess_model_name="gemini", to_print_output=True):
+    def __init__(
+            self,
+            model_name="gemini",
+            guess_model_name="gemini",
+            to_print_output=True,
+            spec_policy="always",
+            scheduler_threshold=None,
+    ):
         self.llm = LLMClient(
             model_name=model_name,
             temperature=constants.temperature,
@@ -31,6 +38,11 @@ class HotPotQARun:
         self.current_index = None
         self.base_traj_path = self.recalc_base_traj_path()
         self.to_print_output = to_print_output
+        self.spec_policy = spec_policy
+        self.scheduler_threshold = scheduler_threshold
+        valid_policies = {"never", "always", "scheduler"}
+        if self.spec_policy not in valid_policies:
+            raise ValueError(f"Invalid spec_policy '{self.spec_policy}'. Expected one of {sorted(valid_policies)}")
 
     def recalc_base_traj_path(self):
         # 根据 agent 模型名、top-k 猜测数、guess 模型名，生成轨迹保存目录路径
@@ -110,6 +122,14 @@ class HotPotQARun:
         else:
             return action[:index].lower() + action[index:]
 
+    @staticmethod
+    def get_action_type(action):
+        action = action.strip().lower()
+        ind = action.find("[")
+        if ind < 0:
+            return None
+        return action[:ind]
+
     def separate_thought_and_action(self, i, thought_action):
         # 从 LLM 输出中解析出第 i 步的 Thought 和单个 Action 字符串
         action_condition = f"Action {i}: " in thought_action
@@ -180,12 +200,21 @@ class HotPotQARun:
             self.log(f"  Question [{idx}]: {question}")
             self.log(f"{'='*60}")
 
+<<<<<<< HEAD
         if simulate:
             sim_running_prompt = running_prompt
             self.env.sim_trajectory_dict["prompt"] = sim_running_prompt
             self.speculator.reset_episode()
 
         n_calls_badcalls = [0, 0]
+=======
+        if simulate:
+            sim_running_prompt = running_prompt
+            self.env.sim_trajectory_dict["prompt"] = sim_running_prompt
+
+        n_calls_badcalls = [0, 0]
+        step_records = []
+>>>>>>> e9e6e0d (stage2: add step_records and None-safe utilities/tests)
 
         for i in range(1, n):
             if to_print:
@@ -217,12 +246,19 @@ class HotPotQARun:
             self.env.update_traj_dict_records(thought, action, obs, normal_traj_time_taken, False)
             next_step_string = PromptTemplates.NEXT_STEP_PROMPT.format(i=i, thought=thought, action=action, obs=obs)
             running_prompt += next_step_string
+            action_type = self.get_action_type(action)
+            eligible_for_speculation = action_type == "search"
+            speculated = bool(simulate)
+            skip_reason = None if speculated else "policy_disabled"
+            hit = None
+            speculator_latency = None
             if to_print:
                 self.log(f"  [Normal]  Thought: {thought}")
                 self.log(f"            Action:  {action}")
                 self.log(f"            Obs:     {obs[:200]}{'...' if len(obs) > 200 else ''}")
                 self.log(f"            Time:    {normal_traj_time_taken:.3f}s")
 
+<<<<<<< HEAD
             if simulate:
                 sim_prediction = self.speculator.predict_observation(
                     action=self.action_lowercase(action),
@@ -242,10 +278,36 @@ class HotPotQARun:
                 )
                 if to_print:
                     self.log(f"  [Sim]     Thought: {sim_thought}")
+=======
+            if simulate:
+                sim_obs, sim_r, sim_done, sim_info, sim_traj_time_taken = self.step(
+                    self.env, self.action_lowercase(action), simulate=True
+                )
+                sim_obs = sim_obs.replace('\n', '')
+                self.env.update_traj_dict_records(sim_thought, sim_actions, sim_obs, sim_traj_time_taken, True)
+                speculator_latency = sim_traj_time_taken
+                hit = bool(Metrics.compare_actions(action, sim_actions, sparse=False))
+                next_sim_step_string = PromptTemplates.NEXT_STEP_PROMPT.format(
+                    i=i, thought=thought, action=action, obs=sim_obs
+                )
+                if to_print:
+                    self.log(f"  [Sim]     Thought: {sim_thought}")
+>>>>>>> e9e6e0d (stage2: add step_records and None-safe utilities/tests)
                     self.log(f"            Actions: {sim_actions}")
                     self.log(f"            Obs:     {sim_obs[:200]}{'...' if len(sim_obs) > 200 else ''}")
                     self.log(f"            Time:    {sim_traj_time_taken:.3f}s")
                 sim_running_prompt += next_sim_step_string
+
+            step_records.append({
+                "step_idx": i,
+                "action_type": action_type,
+                "eligible_for_speculation": eligible_for_speculation,
+                "speculated": speculated,
+                "skip_reason": skip_reason,
+                "hit": hit,
+                "tool_latency": normal_traj_time_taken,
+                "speculator_latency": speculator_latency,
+            })
 
             if done:
                 break
@@ -254,15 +316,42 @@ class HotPotQARun:
             obs, r, done, info, time_taken = self.step(self.env, "finish[]")
         if to_print:
             self.log(f"\n  Result: em={info.get('em', 'N/A')}  f1={info.get('f1', 'N/A')}")
-        info.update({'n_calls': n_calls_badcalls[0], 'n_badcalls': n_calls_badcalls[1], 'traj': running_prompt})
+        info.update({
+            'n_calls': n_calls_badcalls[0],
+            'n_badcalls': n_calls_badcalls[1],
+            'traj': running_prompt,
+            'step_records': step_records,
+        })
         return info
 
+<<<<<<< HEAD
     def run(self, webthink_simulate=False, skip_done=False, idxs_override=None):
         from google.genai.errors import ClientError, ServerError
 
         idxs = list(range(constants.num))
         random.Random(constants.random_seed).shuffle(idxs)
         idxs_to_run = idxs_override if idxs_override is not None else idxs[:constants.n_samples_to_run]
+=======
+    def run(self, webthink_simulate=None, skip_done=False, idxs_override=None, seed=None):
+        # 遍历所有样本，依次调用 webthink 运行 ReAct 流程，保存轨迹、指标，并跳过已完成或出错的样本
+        from google.genai.errors import ClientError, ServerError
+
+        if self.spec_policy == "never":
+            policy_simulate = False
+        elif self.spec_policy in {"always", "scheduler"}:
+            # Scheduler shares the always execution path for now.
+            policy_simulate = True
+        else:
+            raise ValueError(f"Unknown spec_policy: {self.spec_policy}")
+
+        if webthink_simulate is not None:
+            policy_simulate = webthink_simulate
+
+        idxs = list(range(constants.num))
+        run_seed = constants.random_seed if seed is None else seed
+        random.Random(run_seed).shuffle(idxs)
+        idxs_to_run = idxs_override if idxs_override is not None else idxs[:constants.n_samples_to_run]
+>>>>>>> e9e6e0d (stage2: add step_records and None-safe utilities/tests)
 
         webthink_examples = Utils.read_json(
             join(constants.prompts_folder, constants.prompt_file)
@@ -290,7 +379,7 @@ class HotPotQARun:
             try:
                 info = self.webthink(
                     i, prompt=webthink_prompt, to_print=True,
-                    n=constants.n_steps_to_run, simulate=webthink_simulate,
+                    n=constants.n_steps_to_run, simulate=policy_simulate,
                 )
 
             except ClientError as e:
@@ -329,15 +418,34 @@ class HotPotQARun:
             normal_observations_dict = self.env.normal_trajectory_dict
             sim_observations_dict = self.env.sim_trajectory_dict
             Utils.save_json(normal_observations_dict, join(current_dir_path, "normalobs.json"))
-            Utils.save_json(sim_observations_dict, join(current_dir_path, "simobs.json"))
-            try:
-                metric_dict = Metrics.get_action_metrics(
-                    normal_observations_dict, sim_observations_dict, sparse=False
+            Utils.save_json(info.get("step_records", []), join(current_dir_path, "step_records.json"))
+            if policy_simulate:
+                Utils.save_json(sim_observations_dict, join(current_dir_path, "simobs.json"))
+                try:
+                    metric_dict = Metrics.get_action_metrics(
+                        normal_observations_dict, sim_observations_dict, sparse=False
+                    )
+                except ZeroDivisionError:
+                    self.log("[WARN] ZeroDivisionError in metrics, skipping this sample", save_log=False)
+                    Utils.delete_dir(current_dir_path, nested=True)
+                    continue
+            else:
+                # Keep output shape consistent for downstream utilities while skipping sim metrics.
+                Utils.save_json(
+                    {
+                        "prompt": normal_observations_dict.get("prompt", ""),
+                        "observations": [],
+                        "thoughts": [],
+                        "actions": [],
+                        "time_taken": [],
+                    },
+                    join(current_dir_path, "simobs.json"),
                 )
-            except ZeroDivisionError:
-                self.log("[WARN] ZeroDivisionError in metrics, skipping this sample", save_log=False)
-                Utils.delete_dir(current_dir_path, nested=True)
-                continue
+                metric_dict = {
+                    "policy": "never",
+                    "em": info.get("em"),
+                    "f1": info.get("f1"),
+                }
             self.log(f"  [Metrics]  idx={self.current_index}  {metric_dict}", save_log=False)
             Utils.save_json(metric_dict, join(current_dir_path, "metrics.json"))
 

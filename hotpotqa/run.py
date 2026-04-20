@@ -91,6 +91,7 @@ def main():
     parser.add_argument("--norun", action="store_false", help="Skip running the experiment")
     parser.add_argument("--modelname", default=constants.openrouter_model_name, help="Agent model name")
     parser.add_argument("--guessmodelname", default=constants.openrouter_guess_model_name, help="Guess model name")
+<<<<<<< HEAD
     parser.add_argument("--idx", type=int, default=None, help="Run a single question index")
     parser.add_argument("--cleanuptrajs", action="store_true", help="Clean up incomplete trajectories")
     args = parser.parse_args()
@@ -101,15 +102,59 @@ def main():
         to_print_output=args.noprint,
     )
 
+=======
+    parser.add_argument(
+        "--spec-policy",
+        choices=["never", "always", "scheduler"],
+        default="always",
+        help="Speculation policy to run",
+    )
+    parser.add_argument("--threshold", type=float, default=None, help="Scheduler threshold")
+    parser.add_argument("--seed", type=int, default=constants.random_seed, help="Shuffle seed")
+    parser.add_argument(
+        "--idx-file",
+        default=None,
+        help="Path to JSON file with sample indices (list or {'all': [...]})",
+    )
+    parser.add_argument("--idx", type=int, default=None, help="Run a single question index")
+    parser.add_argument("--cleanuptrajs", action="store_true", help="Clean up incomplete trajectories")
+    args = parser.parse_args()
+
+    runner = HotPotQARun(
+        model_name=args.modelname,
+        guess_model_name=args.guessmodelname,
+        to_print_output=args.noprint,
+        spec_policy=args.spec_policy,
+        scheduler_threshold=args.threshold,
+    )
+
+>>>>>>> e9e6e0d (stage2: add step_records and None-safe utilities/tests)
     if args.cleanuptrajs:
         Utils.cleanup_trajs(runner.base_traj_path)
 
     if args.norun:
+<<<<<<< HEAD
         if args.idx is not None:
             runner.run(webthink_simulate=True, skip_done=False, idxs_override=[args.idx])
         else:
             runner.run(webthink_simulate=True, skip_done=True)
         Utils.cleanup_trajs(runner.base_traj_path)
+=======
+        idxs_override = None
+        if args.idx_file is not None:
+            idx_payload = Utils.read_json(args.idx_file)
+            if isinstance(idx_payload, dict):
+                idxs_override = idx_payload.get("all", [])
+            else:
+                idxs_override = idx_payload
+        if args.idx is not None:
+            idxs_override = [args.idx]
+            runner.run(skip_done=False, idxs_override=idxs_override, seed=args.seed)
+        else:
+            runner.run(skip_done=True, idxs_override=idxs_override, seed=args.seed)
+        if args.spec_policy != "never":
+            Utils.cleanup_trajs(runner.base_traj_path)
+>>>>>>> e9e6e0d (stage2: add step_records and None-safe utilities/tests)
 
     if args.getmetric:
         compute_metrics(runner, save=args.savemetrics)
