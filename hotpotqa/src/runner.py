@@ -1,8 +1,7 @@
 import os
-import time
-import json
-import random
 import re
+import time
+import random
 import requests
 from os.path import join
 
@@ -13,6 +12,7 @@ from .prompts import PromptTemplates
 from .llm_client import LLMClient
 from . import environment
 from . import wrappers
+from .speculator import HotPotQASpeculator
 
 
 class HotPotQARun:
@@ -25,6 +25,7 @@ class HotPotQARun:
         )
         self.model_name = model_name
         self.guess_model_name = guess_model_name
+        self.speculator = HotPotQASpeculator(model_name=guess_model_name)
         self.env = self._get_env()
         self.simulation_observations_dict = {}
         self.current_index = None
@@ -42,7 +43,7 @@ class HotPotQARun:
         return btp
 
     def _get_env(self):
-        env = environment.WikiEnv(guess_model_name=self.guess_model_name)
+        env = environment.WikiEnv()
         env = wrappers.HotPotQAWrapper(env, split="dev")
         env = wrappers.LoggingWrapper(env)
         env = wrappers.HistoryWrapper(env, obs_format="history")
@@ -56,16 +57,7 @@ class HotPotQARun:
             log_path = join(self.base_traj_path, str(self.current_index), "log.txt")
             Utils.append_file(text, log_path)
 
-    def step(self, env, action, simulate=False):
-        if simulate:
-            start = time.perf_counter()
-            obs, r, done, info = env.step(action, step_type="simulate")
-            end = time.perf_counter()
-            # `env` is a wrapped env (HistoryWrapper/LoggingWrapper/...).
-            # The simulated observation should come from the returned `obs`,
-            # not from a wrapper-specific attribute on the outermost env.
-            return obs, r, done, info, end - start
-
+    def step(self, env, action):
         attempts = 0
         while attempts < 10:
             try:
@@ -75,16 +67,6 @@ class HotPotQARun:
                 return obs, r, done, info, end - start
             except requests.exceptions.Timeout:
                 attempts += 1
-
-    def extract_action(self, action_string):
-        search_pattern = r'[Ss]earch\[[^\]]+\]'
-        lookup_pattern = r'[Ll]ookup\[[^\]]+\]'
-        finish_pattern = r'[Ff]inish\[[^\]]+\]'
-        for pattern in [search_pattern, lookup_pattern, finish_pattern]:
-            output = re.search(pattern, action_string)
-            if output:
-                return output.group()
-        return None
 
     def extract_actions(self, action_string):
         search_pattern = r'[Ss]earch\[[^\]]+\]'
@@ -101,21 +83,6 @@ class HotPotQARun:
             return action[0].lower() + action[1:]
         else:
             return action[:index].lower() + action[index:]
-
-    def separate_thought_and_action(self, i, thought_action):
-        action_condition = f"Action {i}: " in thought_action
-        thought_condition = f"Thought {i}: " in thought_action
-        thought, action = None, None
-        if thought_condition and action_condition:
-            thought, action = thought_action.strip().split(f"Action {i}: ")
-            thought = thought.strip().split(f"Thought {i}: ")[1]
-        elif thought_condition:
-            thought = thought_action.strip().split(f"Thought {i}: ")[1]
-            action = None
-        elif action_condition:
-            action = thought_action.strip().split(f"Action {i}: ")[1]
-            thought = "Let me do the action " + action
-        return thought, action
 
     def separate_thought_and_actions(self, i, thought_action):
         try:
@@ -168,6 +135,7 @@ class HotPotQARun:
         if simulate:
             sim_running_prompt = running_prompt
             self.env.sim_trajectory_dict["prompt"] = sim_running_prompt
+            self.speculator.reset_episode()
 
         n_calls_badcalls = [0, 0]
 
@@ -180,11 +148,16 @@ class HotPotQARun:
                 )
                 action = actions[0]
                 if simulate:
-                    sim_thought, sim_actions = self.generate_thought_actions(
-                        i, sim_running_prompt, n_calls_badcalls,
+                    sim_prediction = self.speculator.predict_actions(
+                        step_index=i,
+                        running_prompt=sim_running_prompt,
                         num_actions=constants.guess_num_actions,
                         max_retries=constants.max_guess_retries,
                     )
+                    sim_thought = sim_prediction.thought
+                    sim_actions = sim_prediction.actions
+                    n_calls_badcalls[0] += sim_prediction.n_calls
+                    n_calls_badcalls[1] += sim_prediction.n_badcalls
                     sim_running_prompt = running_prompt
             except ValueError as e:
                 self.log(f"[ERROR] {e}", save_log=False)
@@ -203,11 +176,19 @@ class HotPotQARun:
                 self.log(f"            Time:    {normal_traj_time_taken:.3f}s")
 
             if simulate:
-                sim_obs, sim_r, sim_done, sim_info, sim_traj_time_taken = self.step(
-                    self.env, self.action_lowercase(action), simulate=True
+                sim_prediction = self.speculator.predict_observation(
+                    action=self.action_lowercase(action),
+                    max_retries=constants.max_guess_retries,
                 )
+                sim_obs = sim_prediction.observation
+                sim_traj_time_taken = sim_prediction.latency_s
                 sim_obs = sim_obs.replace('\n', '')
                 self.env.update_traj_dict_records(sim_thought, sim_actions, sim_obs, sim_traj_time_taken, True)
+                self.speculator.record_feedback(
+                    action=action,
+                    real_observation=obs,
+                    predicted_observation=sim_obs,
+                )
                 next_sim_step_string = PromptTemplates.NEXT_STEP_PROMPT.format(
                     i=i, thought=thought, action=action, obs=sim_obs
                 )

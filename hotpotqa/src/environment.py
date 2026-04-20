@@ -3,10 +3,6 @@ import gymnasium as gym
 import requests
 from bs4 import BeautifulSoup
 
-from . import constants
-from .prompts import PromptTemplates
-from .llm_client import LLMClient
-
 
 def clean_str(p):
     return p.encode().decode("unicode-escape").encode("latin1").decode("utf-8")
@@ -20,7 +16,7 @@ class TextSpace(gym.spaces.Space):
 
 class WikiEnv(gym.Env):
 
-    def __init__(self, guess_model_name):
+    def __init__(self):
         super().__init__()
         self.page = None
         self.obs = None
@@ -32,14 +28,6 @@ class WikiEnv(gym.Env):
         self.observation_space = self.action_space = TextSpace()
         self.search_time = 0
         self.num_searches = 0
-        self.sim_obs = None
-        self.guess_model_name = guess_model_name
-        self.guess_llm = LLMClient(
-            model_name=guess_model_name,
-            temperature=constants.guess_temperature,
-            max_tokens=constants.max_guess_output_tokens,
-            top_p=constants.guess_top_p,
-        )
 
     def _get_obs(self):
         return self.obs
@@ -82,20 +70,6 @@ class WikiEnv(gym.Env):
         sentences = [s.strip() + '.' for s in sentences if s.strip()]
         return ' '.join(sentences[:5])
 
-    def guess_step(self, entity, simulate=False, max_retries=3):
-        prompt_wrap = PromptTemplates.GUESS_STEP_PROMPT.format(entity)
-        llm_response = None
-        for _ in range(max_retries):
-            llm_response = self.guess_llm.call(prompt_wrap)
-            if llm_response:
-                break
-        if not llm_response:
-            llm_response = ""
-        if simulate:
-            self.sim_obs = self.get_page_obs(llm_response)
-        self.page = llm_response
-        self.obs = self.get_page_obs(self.page)
-
     def search_step(self, entity):
         entity_ = entity.replace(" ", "+")
         search_url = f"https://en.wikipedia.org/w/index.php?search={entity_}"
@@ -135,12 +109,8 @@ class WikiEnv(gym.Env):
             entity = action[len("search["):-1]
             if step_type == "wiki":
                 self.search_step(entity)
-            elif step_type == "guess":
-                self.guess_step(entity)
-            elif step_type == "simulate":
-                self.guess_step(entity, simulate=True)
             else:
-                raise ValueError("Run is not valid. Step type needs to be wiki or guess")
+                raise ValueError("Run is not valid. Step type needs to be wiki")
         elif action.startswith("lookup[") and action.endswith("]"):
             keyword = action[len("lookup["):-1]
             if self.lookup_keyword != keyword:
