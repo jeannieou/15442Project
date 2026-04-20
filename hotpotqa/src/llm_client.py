@@ -1,4 +1,5 @@
 import os
+import re
 import openai
 from google import genai
 from google.genai import types
@@ -112,6 +113,12 @@ class LLMClient:
         else:
             return self._openrouter_call(prompt, stop)
 
+    def _token_limit_kwargs(self):
+        # GPT-5 chat-completions models require max_completion_tokens.
+        if self.resolved_model.startswith("gpt-5"):
+            return {"max_completion_tokens": self.max_tokens}
+        return {"max_tokens": self.max_tokens}
+
     def _gemini_call(self, prompt, stop):
         if stop is not None:
             config = types.GenerateContentConfig(stop_sequences=stop)
@@ -125,48 +132,93 @@ class LLMClient:
 
     def _openai_call(self, prompt, stop):
         openai_client = self._get_openai_client()
-        response = openai_client.chat.completions.create(
+        kwargs = dict(
             model=self.resolved_model,
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": prompt},
             ],
             temperature=self.temperature,
-            max_tokens=self.max_tokens,
             top_p=self.top_p,
             frequency_penalty=0.0,
             presence_penalty=0.0,
         )
+        kwargs.update(self._token_limit_kwargs())
+        response = self._chat_with_unsupported_param_retry(openai_client, kwargs)
         return response.choices[0].message.content
 
     def _openrouter_call(self, prompt, stop):
         openrouter_client = self._get_openrouter_client()
-        response = openrouter_client.chat.completions.create(
+        kwargs = dict(
             model=self.resolved_model,
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": prompt},
             ],
             temperature=self.temperature,
-            max_tokens=self.max_tokens,
             top_p=self.top_p,
             frequency_penalty=0.0,
             presence_penalty=0.0,
         )
+        kwargs.update(self._token_limit_kwargs())
+        response = self._chat_with_unsupported_param_retry(openrouter_client, kwargs)
         return response.choices[0].message.content
 
     def _deepseek_call(self, prompt, stop):
         deepseek_client = self._get_deepseek_client()
-        response = deepseek_client.chat.completions.create(
+        kwargs = dict(
             model=self.resolved_model,
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": prompt},
             ],
             temperature=self.temperature,
-            max_tokens=self.max_tokens,
             top_p=self.top_p,
             frequency_penalty=0.0,
             presence_penalty=0.0,
         )
+        kwargs.update(self._token_limit_kwargs())
+        response = self._chat_with_unsupported_param_retry(deepseek_client, kwargs)
         return response.choices[0].message.content
+
+    def _chat_with_unsupported_param_retry(self, client, kwargs):
+        """Retry when API reports an unsupported parameter.
+
+        This avoids blind token-parameter toggling that can mask the real error.
+        """
+        params = dict(kwargs)
+        for _ in range(6):
+            try:
+                return client.chat.completions.create(**params)
+            except openai.BadRequestError as e:
+                msg = str(e)
+                m = re.search(r"Unsupported parameter:\s*'([^']+)'", msg)
+                if m:
+                    bad_param = m.group(1)
+                    if bad_param in params:
+                        params.pop(bad_param, None)
+                        # Token-limit compatibility switch when needed.
+                        if bad_param == "max_tokens":
+                            params["max_completion_tokens"] = self.max_tokens
+                        elif bad_param == "max_completion_tokens":
+                            params["max_tokens"] = self.max_tokens
+                        continue
+                    raise
+
+                m_val = re.search(r"Unsupported value:\s*'([^']+)'.*param':\s*'([^']+)'", msg)
+                if m_val:
+                    bad_value = m_val.group(1)
+                    bad_param = m_val.group(2)
+                    if bad_param == "temperature":
+                        params["temperature"] = 1
+                        continue
+                    # Generic fallback: drop unsupported-valued optional controls.
+                    if bad_param in params:
+                        params.pop(bad_param, None)
+                        continue
+                    # Sometimes API returns value string as param by itself.
+                    if bad_value in params:
+                        params.pop(bad_value, None)
+                        continue
+                raise
+        raise RuntimeError("Failed to call chat.completions after unsupported-parameter retries")

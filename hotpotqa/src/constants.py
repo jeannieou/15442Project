@@ -1,9 +1,13 @@
-openrouter_api_key = "your_open_ai_key"
+import os
+
+openrouter_api_key = os.environ.get("OPENROUTER_API_KEY", "")
 openrouter_model_name = "openai/gpt-4"
 openrouter_guess_model_name = "openai/gpt-5-nano"
-openai_api_key = "your_open_ai_key"
+openai_api_key = os.environ.get("OPENAI_API_KEY", "")
 
-prompts_folder = "./prompts/"
+# Resolve paths relative to hotpotqa/ so scripts work from any cwd.
+HOTPOTQA_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+prompts_folder = os.path.join(HOTPOTQA_ROOT, "prompts")
 prompt_file = "prompts_naive.json"
 agent_role = "Question Answering Agent"
 

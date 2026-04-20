@@ -7,7 +7,7 @@ import string
 from collections import Counter
 
 
-DATA_DIR = "data"
+DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 HOTPOTQA_SPLIT_FILE = {
     "train": "hotpot_train_v1.1_simplified.json",
     "dev": "hotpot_dev_v1_simplified.json",
@@ -128,7 +128,7 @@ def f1_score(prediction, ground_truth):
 class HotPotQAWrapper(gym.Wrapper):
     def __init__(self, env, split):
         super().__init__(env)
-        data_file = f"{DATA_DIR}/{HOTPOTQA_SPLIT_FILE[split]}"
+        data_file = os.path.join(DATA_DIR, HOTPOTQA_SPLIT_FILE[split])
         self.data = json.load(open(data_file))
         self.data = [(d['question'], d['answer']) for d in self.data]
         self.data_idx = 0
@@ -189,7 +189,7 @@ class HotPotQAWrapper(gym.Wrapper):
 class FeverWrapper(gym.Wrapper):
     def __init__(self, env, split):
         super().__init__(env)
-        data_path = f"./data/{FEVER_SPLIT_FILE[split]}"
+        data_path = os.path.join(DATA_DIR, FEVER_SPLIT_FILE[split])
         with open(data_path, "r") as json_file:
             json_list = list(json_file)
         data = []
