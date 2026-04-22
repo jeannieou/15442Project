@@ -1,5 +1,7 @@
 """Stage-3 tests: scheduler logic + runner integration with per-step gating."""
 
+from types import SimpleNamespace
+
 from src.runner import HotPotQARun
 from src.scheduler import CostAwareScheduler
 
@@ -92,21 +94,39 @@ def test_runner_scheduler_policy_gates_per_step(monkeypatch):
     runner.scheduler = fake_scheduler
 
     def fake_generate(self, i, running_prompt, n_calls_badcalls, num_actions=1, max_retries=1):
-        if num_actions == 1:
-            return "normal-thought", [f"Search[item-{i}]"]
-        return "sim-thought", [f"Search[item-{i}]", "Lookup[foo]"]
+        return "normal-thought", [f"Search[item-{i}]"]
+
+    class _FakeSpeculator:
+        def __init__(self):
+            self.feedback = []
+
+        def reset_episode(self):
+            return None
+
+        def predict_actions(self, step_index, running_prompt, num_actions, max_retries):
+            return SimpleNamespace(
+                thought="sim-thought",
+                actions=[f"Search[item-{step_index}]", "Lookup[foo]"],
+                n_calls=1,
+                n_badcalls=0,
+            )
+
+        def predict_observation(self, action, max_retries):
+            return SimpleNamespace(observation="sim-obs", latency_s=0.05)
+
+        def record_feedback(self, action, real_observation, predicted_observation):
+            self.feedback.append((action, real_observation, predicted_observation))
 
     call_state = {"normal_calls": 0}
 
-    def fake_step(self, env, action, simulate=False):
-        if simulate:
-            return "sim-obs", 0, False, {}, 0.05
+    def fake_step(self, env, action):
         call_state["normal_calls"] += 1
         done = call_state["normal_calls"] >= 2
         return "obs", 0, done, {"em": 1, "f1": 1}, 0.20
 
     monkeypatch.setattr(HotPotQARun, "generate_thought_actions", fake_generate)
     monkeypatch.setattr(HotPotQARun, "step", fake_step)
+    runner.speculator = _FakeSpeculator()
 
     info = runner.webthink(idx=0, prompt="", to_print=False, n=3, simulate=True)
 

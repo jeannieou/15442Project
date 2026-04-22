@@ -14,6 +14,7 @@ from .llm_client import LLMClient
 from .metrics import Metrics
 from .prompts import PromptTemplates
 from .scheduler import CostAwareScheduler
+from .speculator import HotPotQASpeculator
 from .utils import Utils
 
 
@@ -35,6 +36,7 @@ class HotPotQARun:
         )
         self.model_name = model_name
         self.guess_model_name = guess_model_name
+        self.speculator = HotPotQASpeculator(model_name=guess_model_name)
         self.env = self._get_env()
         self.simulation_observations_dict = {}
         self.current_index = None
@@ -70,11 +72,7 @@ class HotPotQARun:
         return btp
 
     def _get_env(self):
-        # Keep compatibility with both WikiEnv() and WikiEnv(guess_model_name=...).
-        try:
-            env = environment.WikiEnv(guess_model_name=self.guess_model_name)
-        except TypeError:
-            env = environment.WikiEnv()
+        env = environment.WikiEnv()
         env = wrappers.HotPotQAWrapper(env, split="dev")
         env = wrappers.LoggingWrapper(env)
         env = wrappers.HistoryWrapper(env, obs_format="history")
@@ -92,13 +90,7 @@ class HotPotQARun:
             log_path = join(self.base_traj_path, str(self.current_index), "log.txt")
             Utils.append_file(text, log_path)
 
-    def step(self, env, action, simulate=False):
-        if simulate:
-            start = time.perf_counter()
-            obs, r, done, info = env.step(action, step_type="simulate")
-            end = time.perf_counter()
-            return obs, r, done, info, end - start
-
+    def step(self, env, action):
         attempts = 0
         while attempts < 10:
             try:
@@ -210,6 +202,7 @@ class HotPotQARun:
         sim_running_prompt = running_prompt
         if simulate:
             self.env.sim_trajectory_dict["prompt"] = sim_running_prompt
+            self.speculator.reset_episode()
 
         n_calls_badcalls = [0, 0]
         step_records = []
@@ -250,13 +243,16 @@ class HotPotQARun:
 
                 if speculated:
                     try:
-                        sim_thought, sim_actions = self.generate_thought_actions(
-                            i,
-                            sim_running_prompt,
-                            n_calls_badcalls,
+                        sim_prediction = self.speculator.predict_actions(
+                            step_index=i,
+                            running_prompt=sim_running_prompt,
                             num_actions=constants.guess_num_actions,
                             max_retries=constants.max_guess_retries,
                         )
+                        sim_thought = sim_prediction.thought
+                        sim_actions = sim_prediction.actions
+                        n_calls_badcalls[0] += sim_prediction.n_calls
+                        n_calls_badcalls[1] += sim_prediction.n_badcalls
                     except ValueError as e:
                         self.log(f"[WARN] Sim action generation failed: {e}", save_log=False)
                         speculated = False
@@ -277,12 +273,18 @@ class HotPotQARun:
                 self.log(f"            Time:    {normal_traj_time_taken:.3f}s")
 
             if simulate and speculated:
-                sim_obs, sim_r, sim_done, sim_info, sim_traj_time_taken = self.step(
-                    self.env, self.action_lowercase(action), simulate=True
+                sim_prediction = self.speculator.predict_observation(
+                    action=self.action_lowercase(action),
+                    max_retries=constants.max_guess_retries,
                 )
-                sim_obs = sim_obs.replace("\n", "")
-                speculator_latency = sim_traj_time_taken
+                sim_obs = sim_prediction.observation.replace("\n", "")
+                speculator_latency = sim_prediction.latency_s
                 hit = bool(Metrics.compare_actions(action, sim_actions, sparse=False))
+                self.speculator.record_feedback(
+                    action=action,
+                    real_observation=obs,
+                    predicted_observation=sim_obs,
+                )
                 next_sim_step_string = PromptTemplates.NEXT_STEP_PROMPT.format(
                     i=i, thought=thought, action=action, obs=sim_obs
                 )
@@ -292,7 +294,7 @@ class HotPotQARun:
                     self.log(f"  [Sim]     Thought: {sim_thought}")
                     self.log(f"            Actions: {sim_actions}")
                     self.log(f"            Obs:     {sim_obs[:200]}{'...' if len(sim_obs) > 200 else ''}")
-                    self.log(f"            Time:    {sim_traj_time_taken:.3f}s")
+                    self.log(f"            Time:    {speculator_latency:.3f}s")
             elif simulate:
                 # Keep speculative prompt aligned with authoritative trajectory when skipped.
                 sim_running_prompt = running_prompt
@@ -473,4 +475,3 @@ class HotPotQARun:
             Utils.save_json(metric_dict, join(current_dir_path, "metrics.json"))
 
         self.env.write()
-
