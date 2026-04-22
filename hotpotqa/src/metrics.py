@@ -6,6 +6,12 @@ from .utils import Utils
 class Metrics:
 
     @staticmethod
+    def _safe_ratio(numerator, denominator):
+        if denominator == 0:
+            return None
+        return numerator / denominator
+
+    @staticmethod
     def get_action_metrics(normal_dict, sim_dict, k=None, sparse=False):
         """Compute per-action-type accuracy metrics.
 
@@ -84,6 +90,32 @@ class Metrics:
             return 1 if Metrics.get_action_name(action1) == Metrics.get_action_name(action2) else 0
         else:
             return 1 if action1 == action2 else 0
+
+    @staticmethod
+    def get_speculation_metrics_from_step_records(step_records):
+        """Compute search-only speculation metrics from step records.
+
+        Returns:
+            conditional_hit_rate: hit/speculated (None when speculated=0)
+            coverage: speculated/eligible (None when eligible=0)
+            overall_hit_rate: hit/eligible (None when eligible=0)
+        """
+        eligible_records = [r for r in step_records if r.get("eligible_for_speculation")]
+        speculated_records = [r for r in eligible_records if r.get("speculated") is True]
+        hit_records = [r for r in speculated_records if r.get("hit") is True]
+
+        n_eligible = len(eligible_records)
+        n_speculated = len(speculated_records)
+        n_hits = len(hit_records)
+
+        return {
+            "conditional_hit_rate": Metrics._safe_ratio(n_hits, n_speculated),
+            "coverage": Metrics._safe_ratio(n_speculated, n_eligible),
+            "overall_hit_rate": Metrics._safe_ratio(n_hits, n_eligible),
+            "eligible_steps": n_eligible,
+            "speculated_steps": n_speculated,
+            "hit_steps": n_hits,
+        }
 
     @staticmethod
     def get_action_name(full_action):

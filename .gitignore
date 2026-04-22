@@ -241,3 +241,7 @@ hotpotqa/dist/
 hotpotqa/build/
 hotpotqa/.venv/
 hotpotqa/venv/
+hotpotqa/tee
+hotpotqa/**/*.log
+hotpotqa/.pytest_cache/
+hotpotqa/trajs/

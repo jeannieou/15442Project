@@ -177,3 +177,10 @@ class Utils:
         if len(my_list) == 0:
             return None
         return sum(my_list) / len(my_list)
+
+    @staticmethod
+    def safe_mean(values):
+        valid = [v for v in values if v is not None]
+        if not valid:
+            return None
+        return sum(valid) / len(valid)
