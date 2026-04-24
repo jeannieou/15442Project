@@ -8,6 +8,7 @@ where the agent makes a move and the opponent makes a move sequentially.
 import re
 import time
 import uuid
+import os
 from concurrent.futures import ThreadPoolExecutor
 from os.path import join
 from typing import Dict, List, Optional, Tuple, Any
@@ -34,8 +35,10 @@ class Config:
                 config = yaml.safe_load(f)
 
             # API Configuration
-            self.openai_api_key = config['api']['openai']['key']
-            self.openrouter_api_key = config['api']['openrouter']['key']
+            openai_key = (config['api']['openai']['key'] or "").strip()
+            openrouter_key = (config['api']['openrouter']['key'] or "").strip()
+            self.openai_api_key = openai_key or os.getenv("OPENAI_API_KEY", "").strip()
+            self.openrouter_api_key = openrouter_key or os.getenv("OPENROUTER_API_KEY", "").strip()
 
             # Model Configuration
             self.openai_model_name = config['models']['openai']['main']
@@ -64,8 +67,31 @@ class Config:
             self.guess_prompt = config['prompts']['guess']
             self.retry_prompt = config['prompts']['retry']
 
+            needs_openai_key = (
+                self.agent_name0 == "OpenAI"
+                or self.agent_name1 == "OpenAI"
+                or self.guess_model_name.startswith("gpt")
+                or self.guess_model_name.startswith("o")
+            )
+            needs_openrouter_key = (
+                self.agent_name0 == "OpenRouter"
+                or self.agent_name1 == "OpenRouter"
+                or "/" in self.guess_model_name
+            )
+
+            if needs_openai_key and not self.openai_api_key:
+                raise ValueError(
+                    "Missing OpenAI API key. Set api.openai.key in config.yml "
+                    "or export OPENAI_API_KEY."
+                )
+            if needs_openrouter_key and not self.openrouter_api_key:
+                raise ValueError(
+                    "Missing OpenRouter API key. Set api.openrouter.key in config.yml "
+                    "or export OPENROUTER_API_KEY."
+                )
+
         except Exception as e:
-            print(f"Error loading YAML config: {e}")
+            raise ValueError(f"Error loading YAML config '{config_path}': {e}") from e
 
 class ChessActionCleaner:
     """Utility class for cleaning and validating chess actions"""
