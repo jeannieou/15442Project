@@ -8,6 +8,8 @@ where a guess model predicts opponent moves and prepare responses in parallel.
 import re
 import time
 import uuid
+import os
+import math
 from concurrent.futures import ThreadPoolExecutor
 from os.path import join
 from typing import Dict, List, Optional, Tuple, Any
@@ -34,8 +36,10 @@ class Config:
                 config = yaml.safe_load(f)
             
             # API Configuration
-            self.openai_api_key = config['api']['openai']['key']
-            self.openrouter_api_key = config['api']['openrouter']['key']
+            openai_key = (config['api']['openai']['key'] or "").strip()
+            openrouter_key = (config['api']['openrouter']['key'] or "").strip()
+            self.openai_api_key = openai_key or os.getenv("OPENAI_API_KEY", "").strip()
+            self.openrouter_api_key = openrouter_key or os.getenv("OPENROUTER_API_KEY", "").strip()
             
             # Model Configuration
             self.openai_model_name = config['models']['openai']['main']
@@ -64,8 +68,53 @@ class Config:
             self.guess_prompt = config['prompts']['guess']
             self.retry_prompt = config['prompts']['retry']
 
+            # Optional scheduler configuration (state-aware speculation gate)
+            scheduler = config.get('scheduler', {})
+            weights = scheduler.get('weights', {})
+            self.scheduler_enabled = bool(scheduler.get('enabled', False))
+            self.scheduler_threshold = float(scheduler.get('threshold', 0.25))
+            self.scheduler_base_hit_rate = float(scheduler.get('base_hit_rate', 0.25))
+            self.scheduler_lambda_cost = float(scheduler.get('lambda_cost', 0.2))
+            self.scheduler_actor_time_base = float(scheduler.get('actor_time_base', 52.46))
+            self.scheduler_actor_time_per_legal = float(scheduler.get('actor_time_per_legal', 4.83))
+            self.scheduler_spec_time_base = float(scheduler.get('spec_time_base', 109.07))
+            self.scheduler_spec_time_per_legal = float(scheduler.get('spec_time_per_legal', 2.81))
+            self.scheduler_spec_cost_scale_per_guess = float(
+                scheduler.get('spec_cost_scale_per_guess', 0.35)
+            )
+
+            self.scheduler_w_in_check = float(weights.get('in_check', 0.9))
+            self.scheduler_w_log_legal = float(weights.get('log_legal', -0.4))
+            self.scheduler_w_checking_ratio = float(weights.get('checking_ratio', 1.1))
+            self.scheduler_w_capture_ratio = float(weights.get('capture_ratio', 0.7))
+            self.scheduler_w_mate_in_1 = float(weights.get('mate_in_1', 2.0))
+            self.scheduler_w_promotion = float(weights.get('promotion', 0.8))
+
+            needs_openai_key = (
+                self.agent_name0 == "OpenAI"
+                or self.agent_name1 == "OpenAI"
+                or self.guess_model_name.startswith("gpt")
+                or self.guess_model_name.startswith("o")
+            )
+            needs_openrouter_key = (
+                self.agent_name0 == "OpenRouter"
+                or self.agent_name1 == "OpenRouter"
+                or "/" in self.guess_model_name
+            )
+
+            if needs_openai_key and not self.openai_api_key:
+                raise ValueError(
+                    "Missing OpenAI API key. Set api.openai.key in config.yml "
+                    "or export OPENAI_API_KEY."
+                )
+            if needs_openrouter_key and not self.openrouter_api_key:
+                raise ValueError(
+                    "Missing OpenRouter API key. Set api.openrouter.key in config.yml "
+                    "or export OPENROUTER_API_KEY."
+                )
+
         except Exception as e:
-            print(f"Error loading YAML config: {e}")
+            raise ValueError(f"Error loading YAML config '{config_path}': {e}") from e
 
 class ChessActionCleaner:
     """Utility class for cleaning and validating chess actions"""
@@ -230,6 +279,93 @@ class SpeculativeChessRunner:
     def _get_valid_moves(self) -> List[str]:
         """Get list of valid moves in UCI format"""
         return [f'[{move.uci()}]' for move in self.env.state.game_state["board"].legal_moves]
+
+    @staticmethod
+    def _sigmoid(x: float) -> float:
+        return 1.0 / (1.0 + math.exp(-x))
+
+    @staticmethod
+    def _logit(p: float) -> float:
+        p = min(max(p, 1e-6), 1 - 1e-6)
+        return math.log(p / (1.0 - p))
+
+    def _extract_scheduler_features(self, board: chess.Board) -> Dict[str, Any]:
+        legal_moves = list(board.legal_moves)
+        n_legal = len(legal_moves)
+        checking_moves = 0
+        capture_moves = 0
+        promotion_moves = 0
+        mate_in_1_moves = 0
+
+        for move in legal_moves:
+            if board.is_capture(move):
+                capture_moves += 1
+            if move.promotion is not None:
+                promotion_moves += 1
+
+            temp_board = board.copy()
+            temp_board.push(move)
+            if temp_board.is_check():
+                checking_moves += 1
+            if temp_board.is_checkmate():
+                mate_in_1_moves += 1
+
+        return {
+            "in_check": board.is_check(),
+            "n_legal": n_legal,
+            "checking_ratio": (checking_moves / n_legal) if n_legal else 0.0,
+            "capture_ratio": (capture_moves / n_legal) if n_legal else 0.0,
+            "promotion_available": promotion_moves > 0,
+            "mate_in_1_available": mate_in_1_moves > 0,
+        }
+
+    def _scheduler_decision(self, board: chess.Board) -> Tuple[bool, Dict[str, Any]]:
+        if not self.config.scheduler_enabled:
+            return True, {"enabled": False, "should_speculate": True}
+
+        features = self._extract_scheduler_features(board)
+        n_legal = max(1, int(features["n_legal"]))
+
+        z = (
+            self._logit(self.config.scheduler_base_hit_rate)
+            + self.config.scheduler_w_in_check * (1.0 if features["in_check"] else 0.0)
+            + self.config.scheduler_w_log_legal * math.log(float(n_legal) / 20.0)
+            + self.config.scheduler_w_checking_ratio * float(features["checking_ratio"])
+            + self.config.scheduler_w_capture_ratio * float(features["capture_ratio"])
+            + self.config.scheduler_w_mate_in_1 * (1.0 if features["mate_in_1_available"] else 0.0)
+            + self.config.scheduler_w_promotion * (1.0 if features["promotion_available"] else 0.0)
+        )
+
+        p_single = self._sigmoid(z)
+        k = max(1, int(self.num_guesses))
+        p_hit_k = 1.0 - ((1.0 - p_single) ** k)
+
+        t_actor_hat = (
+            self.config.scheduler_actor_time_base
+            + self.config.scheduler_actor_time_per_legal * n_legal
+        )
+        spec_scale = 1.0 + max(0, k - 1) * self.config.scheduler_spec_cost_scale_per_guess
+        t_spec_hat = (
+            self.config.scheduler_spec_time_base
+            + self.config.scheduler_spec_time_per_legal * n_legal
+        ) * spec_scale
+
+        score = p_hit_k * t_actor_hat - self.config.scheduler_lambda_cost * t_spec_hat
+        should_speculate = (p_hit_k >= self.config.scheduler_threshold) and (score > 0.0)
+
+        return should_speculate, {
+            "enabled": True,
+            "threshold": self.config.scheduler_threshold,
+            "lambda_cost": self.config.scheduler_lambda_cost,
+            "p_single": p_single,
+            "p_hit_k": p_hit_k,
+            "t_actor_hat": t_actor_hat,
+            "t_spec_hat": t_spec_hat,
+            "score": score,
+            "should_speculate": should_speculate,
+            "num_guesses": k,
+            "features": features,
+        }
     
 
     def _guess_actions(self, observation: str, retries: int = 3) -> Optional[Tuple[List[str], float, int, int, int]]:
@@ -287,9 +423,15 @@ class SpeculativeChessRunner:
         
         return move, end_time - start_time, input_tokens, output_tokens, total_tokens
     
-    def _speculation_task(self, agent: Any, observation: str, player_id: int) -> Tuple[List[str], List[str], List[float], List[float], List[float], List[int], List[int], List[int], List[int], List[int], List[int]]:
+    def _speculation_task(self, agent: Any, observation: str, player_id: int) -> Tuple[List[str], List[str], List[float], List[float], List[float], List[int], List[int], List[int], List[int], List[int], List[int], Dict[str, Any]]:
         """Execute speculation: predict opponent move and prepare response.
         The predictions are the speculated opponent moves, the speculations are the current agent's moves based on the predictions."""
+        board = self.env.state.game_state["board"]
+        should_speculate, scheduler_info = self._scheduler_decision(board)
+        if self.logger:
+            self.logger.log("SCHEDULER", Utils.dict_to_str(scheduler_info))
+        if not should_speculate:
+            return [], [], [], [], [], [], [], [], [], [], [], scheduler_info
 
         role = "White" if player_id == 0 else "Black"
         valid_moves = self._get_valid_moves()
@@ -299,7 +441,8 @@ class SpeculativeChessRunner:
         prediction_results = self._guess_actions(truncated_observation, retries=3)
 
         if prediction_results is None:
-            return [], [], [], [], [], [], [], [], [], [], []
+            scheduler_info["guess_failed"] = True
+            return [], [], [], [], [], [], [], [], [], [], [], scheduler_info
 
         predictions = prediction_results[0]
         individual_prediction_times = [prediction_results[1]] * len(predictions)
@@ -312,7 +455,8 @@ class SpeculativeChessRunner:
         valid_prediction_times = [individual_prediction_times[i] for i in range(len(individual_prediction_times))]
 
         if not valid_predictions:
-            return [], [], [], [], [], [], [], [], [], [], []
+            scheduler_info["empty_predictions"] = True
+            return [], [], [], [], [], [], [], [], [], [], [], scheduler_info
 
         # Simulate the predicted moves in parallel
         with ThreadPoolExecutor(max_workers=len(valid_predictions)) as executor:
@@ -345,7 +489,7 @@ class SpeculativeChessRunner:
             if pred_time is not None and spec_time is not None:
                 total_times.append(pred_time + spec_time)
 
-        return valid_predictions, speculations, valid_prediction_times, individual_speculation_times, total_times, input_prediction_tokens, output_prediction_tokens, total_prediction_tokens, input_speculation_tokens, output_speculation_tokens, total_speculation_tokens
+        return valid_predictions, speculations, valid_prediction_times, individual_speculation_times, total_times, input_prediction_tokens, output_prediction_tokens, total_prediction_tokens, input_speculation_tokens, output_speculation_tokens, total_speculation_tokens, scheduler_info
     
     def _simulate_and_speculate(
         self, 
@@ -433,6 +577,11 @@ class SpeculativeChessRunner:
                 input_speculation_tokens: List[int] = []
                 output_speculation_tokens: List[int] = []
                 total_speculation_tokens: List[int] = []
+                scheduler_info: Dict[str, Any] = {
+                    "enabled": self.config.scheduler_enabled,
+                    "should_speculate": False,
+                    "reason": "reused_previous_speculation",
+                }
                 input_tokens1: int = 0
                 output_tokens1: int = 0
                 total_tokens1: int = 0
@@ -449,7 +598,7 @@ class SpeculativeChessRunner:
                     
                     current_move, time_taken1, input_tokens1, output_tokens1, total_tokens1 = current_future.result()
 
-                    current_predictions, current_speculations, prediction_times, speculation_times, times_taken2, input_prediction_tokens, output_prediction_tokens, total_prediction_tokens, input_speculation_tokens, output_speculation_tokens, total_speculation_tokens = speculation_future.result()
+                    current_predictions, current_speculations, prediction_times, speculation_times, times_taken2, input_prediction_tokens, output_prediction_tokens, total_prediction_tokens, input_speculation_tokens, output_speculation_tokens, total_speculation_tokens, scheduler_info = speculation_future.result()
                     
                     if is_initial_step:
                         is_initial_step = False
@@ -486,6 +635,7 @@ class SpeculativeChessRunner:
                 "input_tokens_speculation": input_speculation_tokens,
                 "output_tokens_speculation": output_speculation_tokens,
                 "total_tokens_speculation": total_speculation_tokens,
+                "scheduler_info": scheduler_info,
             }
             
             if self.logger:
