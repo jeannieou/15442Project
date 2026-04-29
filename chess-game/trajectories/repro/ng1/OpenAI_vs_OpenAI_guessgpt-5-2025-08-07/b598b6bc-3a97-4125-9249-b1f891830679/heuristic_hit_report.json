@@ -1,0 +1,862 @@
+{
+    "source": "trajectories/repro/ng1/OpenAI_vs_OpenAI_guessgpt-5-2025-08-07/b598b6bc-3a97-4125-9249-b1f891830679/stepsinfo.json",
+    "base_rate": 0.25,
+    "summary": {
+        "labeled_windows": 24,
+        "empirical_hit_rate": 0.25,
+        "mean_heuristic_probability": 0.22887617798324345,
+        "threshold": 0.2,
+        "decision_rate": 0.7083333333333334,
+        "precision_if_decide": 0.29411764705882354,
+        "recall_if_decide": 0.8333333333333334,
+        "decision_accuracy": 0.4583333333333333,
+        "confusion_matrix": {
+            "tp": 5,
+            "fp": 12,
+            "tn": 6,
+            "fn": 1
+        }
+    },
+    "rows": [
+        {
+            "step": 0,
+            "player_id": 0,
+            "move": "[e2e4]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 1,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.25,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 20,
+                "checking_moves": 0,
+                "capture_moves": 0,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": 0.0,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            }
+        },
+        {
+            "step": 1,
+            "player_id": 1,
+            "move": "[c7c5]",
+            "num_predictions": 0,
+            "prediction_hit_this_step": null,
+            "speculation_hit_used_this_step": true,
+            "heuristic_probability": 0.25,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 20,
+                "checking_moves": 0,
+                "capture_moves": 0,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": 0.0,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            }
+        },
+        {
+            "step": 2,
+            "player_id": 0,
+            "move": "[g1f3]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 1,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.19803641261849736,
+            "heuristic_should_speculate": false,
+            "features": {
+                "in_check": false,
+                "n_legal": 30,
+                "checking_moves": 0,
+                "capture_moves": 0,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            }
+        },
+        {
+            "step": 3,
+            "player_id": 1,
+            "move": "[b8c6]",
+            "num_predictions": 0,
+            "prediction_hit_this_step": null,
+            "speculation_hit_used_this_step": true,
+            "heuristic_probability": 0.25,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 22,
+                "checking_moves": 0,
+                "capture_moves": 0,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": 0.0,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            }
+        },
+        {
+            "step": 4,
+            "player_id": 0,
+            "move": "[f1b5]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.19803641261849736,
+            "heuristic_should_speculate": false,
+            "features": {
+                "in_check": false,
+                "n_legal": 28,
+                "checking_moves": 0,
+                "capture_moves": 0,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            }
+        },
+        {
+            "step": 5,
+            "player_id": 1,
+            "move": "[c6d4]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.19803641261849736,
+            "heuristic_should_speculate": false,
+            "features": {
+                "in_check": false,
+                "n_legal": 25,
+                "checking_moves": 0,
+                "capture_moves": 0,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            }
+        },
+        {
+            "step": 6,
+            "player_id": 0,
+            "move": "[b1a3]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.21073723276608933,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 32,
+                "checking_moves": 1,
+                "capture_moves": 2,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.03125,
+                "capture_ratio": 0.0625
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.034375,
+                "capture_ratio": 0.04375
+            }
+        },
+        {
+            "step": 7,
+            "player_id": 1,
+            "move": "[a7a6]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.2256170067376273,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 26,
+                "checking_moves": 2,
+                "capture_moves": 3,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.07692307692307693,
+                "capture_ratio": 0.11538461538461539
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.08461538461538462,
+                "capture_ratio": 0.08076923076923077
+            }
+        },
+        {
+            "step": 8,
+            "player_id": 0,
+            "move": "[b5c4]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.2149424883218194,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 31,
+                "checking_moves": 1,
+                "capture_moves": 3,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.03225806451612903,
+                "capture_ratio": 0.0967741935483871
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.035483870967741936,
+                "capture_ratio": 0.06774193548387096
+            }
+        },
+        {
+            "step": 9,
+            "player_id": 1,
+            "move": "[e7e6]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.21925025759335956,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 28,
+                "checking_moves": 2,
+                "capture_moves": 2,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.07142857142857142,
+                "capture_ratio": 0.07142857142857142
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.07857142857142857,
+                "capture_ratio": 0.049999999999999996
+            }
+        },
+        {
+            "step": 10,
+            "player_id": 0,
+            "move": "[e1g1]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 1,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.2093890015835315,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 30,
+                "checking_moves": 0,
+                "capture_moves": 3,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.1
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.06999999999999999
+            }
+        },
+        {
+            "step": 11,
+            "player_id": 1,
+            "move": "[b7b5]",
+            "num_predictions": 0,
+            "prediction_hit_this_step": null,
+            "speculation_hit_used_this_step": true,
+            "heuristic_probability": 0.21539109931597347,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 34,
+                "checking_moves": 2,
+                "capture_moves": 2,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.058823529411764705,
+                "capture_ratio": 0.058823529411764705
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.06470588235294118,
+                "capture_ratio": 0.041176470588235294
+            }
+        },
+        {
+            "step": 12,
+            "player_id": 0,
+            "move": "[c4e2]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.21502314074829676,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 27,
+                "checking_moves": 0,
+                "capture_moves": 4,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.14814814814814814
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.10370370370370369
+            }
+        },
+        {
+            "step": 13,
+            "player_id": 1,
+            "move": "[b5b4]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.21889084873774348,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 34,
+                "checking_moves": 2,
+                "capture_moves": 3,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.058823529411764705,
+                "capture_ratio": 0.08823529411764706
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.06470588235294118,
+                "capture_ratio": 0.061764705882352944
+            }
+        },
+        {
+            "step": 14,
+            "player_id": 0,
+            "move": "[a3c4]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.20708079687314992,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 25,
+                "checking_moves": 0,
+                "capture_moves": 2,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.08
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.055999999999999994
+            }
+        },
+        {
+            "step": 15,
+            "player_id": 1,
+            "move": "[d7d5]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 1,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.21889084873774348,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 34,
+                "checking_moves": 2,
+                "capture_moves": 3,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.058823529411764705,
+                "capture_ratio": 0.08823529411764706
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.06470588235294118,
+                "capture_ratio": 0.061764705882352944
+            }
+        },
+        {
+            "step": 16,
+            "player_id": 0,
+            "move": "[e4d5]",
+            "num_predictions": 0,
+            "prediction_hit_this_step": null,
+            "speculation_hit_used_this_step": true,
+            "heuristic_probability": 0.21315365520860846,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 27,
+                "checking_moves": 1,
+                "capture_moves": 2,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.037037037037037035,
+                "capture_ratio": 0.07407407407407407
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.040740740740740744,
+                "capture_ratio": 0.05185185185185184
+            }
+        },
+        {
+            "step": 17,
+            "player_id": 1,
+            "move": "[e6d5]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.17528678717133245,
+            "heuristic_should_speculate": false,
+            "features": {
+                "in_check": false,
+                "n_legal": 38,
+                "checking_moves": 2,
+                "capture_moves": 5,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.05263157894736842,
+                "capture_ratio": 0.13157894736842105
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.6,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.05789473684210526,
+                "capture_ratio": 0.09210526315789473
+            }
+        },
+        {
+            "step": 18,
+            "player_id": 0,
+            "move": "[c4e5]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.20972028451723085,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 25,
+                "checking_moves": 1,
+                "capture_moves": 1,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.04,
+                "capture_ratio": 0.04
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.044000000000000004,
+                "capture_ratio": 0.027999999999999997
+            }
+        },
+        {
+            "step": 19,
+            "player_id": 1,
+            "move": "[d4e2]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.16922746325603114,
+            "heuristic_should_speculate": false,
+            "features": {
+                "in_check": false,
+                "n_legal": 40,
+                "checking_moves": 2,
+                "capture_moves": 3,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.05,
+                "capture_ratio": 0.075
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.6,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.05500000000000001,
+                "capture_ratio": 0.0525
+            }
+        },
+        {
+            "step": 20,
+            "player_id": 0,
+            "move": "[d1e2]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 1,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.777539988206868,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": true,
+                "n_legal": 2,
+                "checking_moves": 0,
+                "capture_moves": 1,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.5
+            },
+            "score_parts": {
+                "in_check": 0.9,
+                "low_legal_moves": 1.1,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.35
+            }
+        },
+        {
+            "step": 21,
+            "player_id": 1,
+            "move": "[d8e7]",
+            "num_predictions": 0,
+            "prediction_hit_this_step": null,
+            "speculation_hit_used_this_step": true,
+            "heuristic_probability": 0.19803641261849736,
+            "heuristic_should_speculate": false,
+            "features": {
+                "in_check": false,
+                "n_legal": 33,
+                "checking_moves": 0,
+                "capture_moves": 0,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0
+            }
+        },
+        {
+            "step": 22,
+            "player_id": 0,
+            "move": "[f1e1]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.20997387822056793,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 34,
+                "checking_moves": 1,
+                "capture_moves": 2,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.029411764705882353,
+                "capture_ratio": 0.058823529411764705
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.03235294117647059,
+                "capture_ratio": 0.041176470588235294
+            }
+        },
+        {
+            "step": 23,
+            "player_id": 1,
+            "move": "[g7g6]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.2015335166990468,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 32,
+                "checking_moves": 0,
+                "capture_moves": 1,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.03125
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.021875
+            }
+        },
+        {
+            "step": 24,
+            "player_id": 0,
+            "move": "[e5c6]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 1,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.21340954797702885,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 34,
+                "checking_moves": 1,
+                "capture_moves": 3,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.029411764705882353,
+                "capture_ratio": 0.08823529411764706
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.03235294117647059,
+                "capture_ratio": 0.061764705882352944
+            }
+        },
+        {
+            "step": 25,
+            "player_id": 1,
+            "move": "[e7e6]",
+            "num_predictions": 0,
+            "prediction_hit_this_step": null,
+            "speculation_hit_used_this_step": true,
+            "heuristic_probability": 0.20218617082743326,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 27,
+                "checking_moves": 0,
+                "capture_moves": 1,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.037037037037037035
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.02592592592592592
+            }
+        },
+        {
+            "step": 26,
+            "player_id": 0,
+            "move": "[f3e5]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.16597838332524667,
+            "heuristic_should_speculate": false,
+            "features": {
+                "in_check": false,
+                "n_legal": 38,
+                "checking_moves": 1,
+                "capture_moves": 3,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.02631578947368421,
+                "capture_ratio": 0.07894736842105263
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.6,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.02894736842105263,
+                "capture_ratio": 0.055263157894736833
+            }
+        },
+        {
+            "step": 27,
+            "player_id": 1,
+            "move": "[g8e7]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.20581537561179636,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 29,
+                "checking_moves": 0,
+                "capture_moves": 2,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.06896551724137931
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.04827586206896552
+            }
+        },
+        {
+            "step": 28,
+            "player_id": 0,
+            "move": "[d2d4]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.16558904590954382,
+            "heuristic_should_speculate": false,
+            "features": {
+                "in_check": false,
+                "n_legal": 43,
+                "checking_moves": 0,
+                "capture_moves": 5,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.11627906976744186
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.6,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.0813953488372093
+            }
+        },
+        {
+            "step": 29,
+            "player_id": 1,
+            "move": "[f8g7]",
+            "num_predictions": 1,
+            "prediction_hit_this_step": 0,
+            "speculation_hit_used_this_step": false,
+            "heuristic_probability": 0.21502314074829676,
+            "heuristic_should_speculate": true,
+            "features": {
+                "in_check": false,
+                "n_legal": 27,
+                "checking_moves": 0,
+                "capture_moves": 4,
+                "promotion_moves": 0,
+                "mate_in_1_moves": 0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.14814814814814814
+            },
+            "score_parts": {
+                "in_check": 0.0,
+                "low_legal_moves": -0.3,
+                "mate_in_1": 0.0,
+                "promotion": 0.0,
+                "checking_ratio": 0.0,
+                "capture_ratio": 0.10370370370370369
+            }
+        }
+    ]
+}
